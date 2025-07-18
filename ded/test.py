@@ -13,7 +13,7 @@ nome = dados['nome']
 nivel = dados['nivel']
 pyautogui.PAUSE = 2
 pyautogui.press("win")
-pyautogui.write("ficha editavel D&D 5E editavel.pdf")
+pyautogui.write("5E_CharacterSheet_Fillable.pdf")
 pyautogui.click(x=551, y=132)
 pyautogui.press("enter")
 # passo 2: fazer login
