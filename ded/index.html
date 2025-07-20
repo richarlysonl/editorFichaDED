@@ -1,0 +1,388 @@
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enviar JSON para Python</title>
+  <link rel="stylesheet" href="styles/styles.css">
+  <style>
+    .rolagem {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+
+    .valor-dado {
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      background: #d0eaff;
+      border: 2px solid #007acc;
+      border-radius: 8px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .campo-atributo {
+      border: 2px dashed #aaa;
+      padding: 10px;
+      margin: 10px 0;
+      min-height: 10px;
+      width: 100px;
+      text-align: center;
+      font-weight: bold;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+
+  <label for="nome">Nome:</label>
+  <input type="text" id="nome" name="nome" required>
+
+   <label for="classe" >Escolha uma classe:</label>
+<select id="classe" name="classe" onchange="mostrarBotaoBonus()">
+  <option value="">--Selecione--</option>
+  <option value="barbaro">Bárbaro</option>
+  <option value="bardo">Bardo</option>
+  <option value="bruxo">Bruxo</option>
+  <option value="clerigo">Clérigo</option>
+  <option value="druida">Druida</option>
+  <option value="feiticeiro">Feiticeiro</option>
+  <option value="guerreiro">Guerreiro</option>
+  <option value="ladino">Ladino</option>
+  <option value="mago">Mago</option>
+  <option value="monge">Monge</option>
+  <option value="paladino">Paladino</option>
+  <option value="patrulheiro">Patrulheiro</option>
+</select>
+ <div id="botao-container" style="display:none; margin-top:10px;">
+    <button onclick="mostrarBonus()" id="botaoMostrarBonus">Ver Bônus da Classe</button>
+    <p id="mostrarBonus"> </p>
+  </div>
+  <label for="raca">Escolha uma raça:</label>
+<select id="raca" name="raca" onchange="mostrarBotaoMod()">
+  <option value="">--Selecione--</option>
+  <option value="humano">Humano</option>
+  <option value="orc">Orc</option>
+</select>
+  <div id="botao-raca-container" style="display:none; margin-top:10px;">
+    <button onclick="mostrarMod()" id="botaoMostrarMod">Ver Bônus da raça</button>
+    <p id="mostrarMod"> </p>
+  </div>
+  <label for="nivel">Nível:</label>
+  <input type="number" id="nivel" name="nivel" required>
+  <button><a href="editar.html">click</a></button>
+  <h2>Rolar Atributos</h2>
+  <button id="botaoRolar" onclick="rolarDados(6,1,4,1,6)">Rolar Dados</button>
+  <div id="rolagens" class="rolagem"></div>
+  <h3>Atributos</h3>
+  <div id="atributos">
+    <strong>Força:</strong>
+    <div id="forca" class="campo-atributo" ondrop="drop(event, 'forca')" ondragover="allowDrop(event)"></div>
+
+    <strong>Destreza:</strong>
+    <div id="destreza" class="campo-atributo" ondrop="drop(event, 'destreza')" ondragover="allowDrop(event)"></div>
+
+    <strong>Constituição:</strong>
+    <div id="constituicao" class="campo-atributo" ondrop="drop(event, 'constituicao')" ondragover="allowDrop(event)">
+    </div>
+
+    <strong>Inteligência:</strong>
+    <div id="inteligencia" class="campo-atributo" ondrop="drop(event, 'inteligencia')" ondragover="allowDrop(event)">
+    </div>
+
+    <strong>Sabedoria:</strong>
+    <div id="sabedoria" class="campo-atributo" ondrop="drop(event, 'sabedoria')" ondragover="allowDrop(event)"></div>
+
+    <strong>Carisma:</strong>
+    <div id="carisma" class="campo-atributo" ondrop="drop(event, 'carisma')" ondragover="allowDrop(event)"></div>
+  </div>
+
+  <button type="button" onclick="preencherFichaDnD()">salvar ficha</button>
+
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script>
+    // Variável global para armazenar os resultados das rolagens
+    let atributos = {};
+    let valoresDisponiveis = [];
+
+    function rolarDados(valor_max, valor_min, num_dados, num_descartes, qntd) {
+      valoresDisponiveis = []; // Limpa os valores anteriores
+      for (let i = 0; i < qntd; i++) {
+        const rolagem = [];
+        for (let j = 0; j < num_dados; j++) {
+          const valor = Math.floor(Math.random() * valor_max) + valor_min;
+          rolagem.push(valor);
+        }
+        rolagem.sort((a, b) => b - a);
+        const usados = rolagem.slice(0, num_dados - num_descartes);
+        const soma = usados.reduce((a, b) => a + b, 0);
+        valoresDisponiveis.push(soma); // Adiciona a soma ao array global
+      }
+      const botao = document.getElementById("botaoRolar");
+      if (botao) {
+        botao.remove();
+      }
+      renderRolagens(); // Atualiza a interface com os novos valores
+    }
+
+    function renderRolagens() {
+      const container = document.getElementById("rolagens");
+      container.innerHTML = "";
+
+      valoresDisponiveis.forEach((valor, index) => {
+        const span = document.createElement("span");
+        span.textContent = valor;
+        span.className = "valor-dado";
+        span.draggable = true;
+        span.id = "dado" + index;
+        span.addEventListener("dragstart", (event) => {
+          event.dataTransfer.setData("text", valor);
+        });
+        container.appendChild(span);
+      });
+
+      // Permitir que os campos de atributos também possam ser arrastados
+      Object.keys(atributos).forEach((atributo) => {
+        const div = document.getElementById(atributo);
+        const valor = atributos[atributo];
+        if (valor !== undefined && valor !== "") {
+          div.draggable = true;
+          div.addEventListener("dragstart", (event) => {
+            event.dataTransfer.setData("text", valor);
+            event.dataTransfer.setData("source", atributo); // indica de qual campo veio
+          });
+        }
+      });
+    }
+
+
+    function limparCampos() {
+      const campos = ["forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"];
+      campos.forEach(id => {
+        document.getElementById(id).textContent = "";
+      });
+    }
+
+    function allowDrop(event) {
+      event.preventDefault();
+    }
+
+    function drop(event, atributo) {
+      event.preventDefault();
+      const valor = parseInt(event.dataTransfer.getData("text"));
+      const origem = event.dataTransfer.getData("source");
+
+      // Se for uma troca entre campos de atributos
+      if (origem && origem !== atributo) {
+        const valorDestino = atributos[atributo];
+        atributos[atributo] = valor;
+        atributos[origem] = valorDestino;
+
+        document.getElementById(atributo).textContent = valor;
+        document.getElementById(origem).textContent = valorDestino;
+
+      } else {
+        // Valor veio da área de rolagens
+        if (atributos[atributo] !== undefined) {
+          valoresDisponiveis.push(parseInt(atributos[atributo]));
+        }
+
+        atributos[atributo] = valor;
+        const index = valoresDisponiveis.indexOf(valor);
+        if (index !== -1) {
+          valoresDisponiveis.splice(index, 1);
+        }
+        document.getElementById(atributo).textContent = valor;
+      }
+
+      renderRolagens(); // Atualiza a interface
+    }
+
+    async function preencherFichaDnD() {
+      const nome = document.getElementById('nome').value;
+      const nivel = document.getElementById('nivel').value;
+      const raca = document.getElementById('raca').value;
+      const classe = document.getElementById('classe').value;
+      const bonus = definirClasse(classe);
+      const mod = definirRaca(raca);
+      const url = "5E_CharacterSheet_Fillable.pdf";
+      try {
+        const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+        const form = pdfDoc.getForm();
+        form.getTextField("CharacterName").setText(nome);
+        form.getTextField("ClassLevel").setText(`${classe} ${nivel}`);
+        form.getTextField("PlayerName").setText("João Aventureiro");
+        form.getTextField("Race ").setText(raca);
+        form.getTextField("Alignment").setText("Caótico Bom");
+        form.getTextField("Background").setText("baitola");
+
+
+        form.getTextField("STR").setText(String((atributos.forca + (bonus.forca || 0) + (mod.forca || 0))));
+        form.getTextField("DEX").setText(String((atributos.destreza + (bonus.destreza || 0) + (mod.destreza || 0))));
+        form.getTextField("CON").setText(String((atributos.constituicao + (bonus.constituicao || 0) + (mod.constituicao || 0))));
+        form.getTextField("INT").setText(String(atributos.inteligencia + (bonus.inteligencia || 0) + (mod.inteligencia || 0)));
+        form.getTextField("WIS").setText(String(atributos.sabedoria + (bonus.sabedoria || 0) + (mod.sabedoria || 0)));
+        form.getTextField("CHA").setText(String(atributos.carisma + (bonus.carisma || 0) + (mod.carisma || 0)));
+        const pdfBytes = await pdfDoc.save();
+
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "ficha_preenchida.pdf";
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } catch (e) {
+        alert("Erro ao carregar ou preencher o PDF.");
+        console.error(e);
+      }
+    }
+    function definirClasse(classe) {
+      let bonus = {};
+      switch (classe) {
+        case "guerreiro":
+          bonus.forca = 1;
+          bonus.destreza = 1;
+          bonus.constituicao = 1;
+          bonus.inteligencia = 1;
+          bonus.sabedoria = 1;
+          bonus.carisma = 1;
+          return bonus;
+        case "mago":
+          bonus.forca = 0;
+          bonus.destreza = 1;
+          bonus.constituicao = 1;
+          bonus.inteligencia = 3;
+          bonus.sabedoria = 1;
+          bonus.carisma = 1;
+          return bonus;
+        case "ladino":
+          bonus.forca = 1;
+          bonus.destreza = 1;
+          bonus.constituicao = 1;
+          bonus.inteligencia = 1;
+          bonus.sabedoria = 1;
+          bonus.carisma = 1;
+          return bonus;
+        default:
+          alert("Classe não definida.");
+      }
+    }
+    
+    function definirRaca(raca) {
+      let mod = {};
+      switch (raca) {
+        case "humano":
+          mod.forca = 1;
+          mod.destreza = 1;
+          mod.constituicao = 1;
+          mod.inteligencia = 1;
+          mod.sabedoria = 1;
+          mod.carisma = 1;
+          return mod;
+        case "orc":
+          mod.forca = 3;
+          mod.destreza = 2;
+          mod.constituicao = 1;
+          mod.inteligencia = -1;
+          mod.sabedoria = 1;
+          mod.carisma = 1;
+          return mod;
+        case "ladino":
+          bonus.forca = 1;
+          bonus.destreza = 1;
+          bonus.constituicao = 1;
+          bonus.inteligencia = 1;
+          bonus.sabedoria = 1;
+          bonus.carisma = 1;
+          return mod;
+        default:
+          alert("raça não definida.");
+      }
+    }
+    function mostrarBotaoBonus(){
+      const classe = document.getElementById("classe").value;
+      const botao = document.getElementById("botao-container");
+      botao.style.display = classe !== "" ? "block" : "none";
+    }
+    function mostrarBonus() {
+      const classe = document.getElementById("classe").value;
+      const bonus = definirClasse(classe);
+      const mostrarBonus = document.getElementById("mostrarBonus");
+      const botaoMostrarBonus = document.getElementById("botaoMostrarBonus");
+      // Alterna o texto do botão
+      if (botaoMostrarBonus.textContent == "Ver Bônus da Classe") {
+        botaoMostrarBonus.textContent = "Esconder Bônus da Classe";
+      } else {
+        botaoMostrarBonus.textContent = "Ver Bônus da Classe";
+      }
+       if (mostrarBonus.textContent.trim() !== "") {
+        // já está mostrando, então limpa
+        mostrarBonus.textContent = "";
+        return;
+      }
+      if (bonus) {
+        mostrarBonus.innerHTML = `
+          <strong>Bônus da Classe:</strong><br>
+          Força: ${bonus.forca || 0}<br>
+          Destreza: ${bonus.destreza || 0}<br>
+          Constituição: ${bonus.constituicao || 0}<br>
+          Inteligência: ${bonus.inteligencia || 0}<br>
+          Sabedoria: ${bonus.sabedoria || 0}<br>
+          Carisma: ${bonus.carisma || 0}
+        `;
+      } else {
+        mostrarBonus.innerHTML = "Nenhum bônus definido para esta classe.";
+      }
+        
+    }
+
+    function mostrarBotaoMod(){
+      const raca = document.getElementById("raca").value;
+      const botao = document.getElementById("botao-raca-container");
+      botao.style.display = raca !== "" ? "block" : "none";
+    }
+
+    function mostrarMod() {
+      const raca = document.getElementById("raca").value;
+      const mod = definirRaca(raca);
+      const mostrarMod = document.getElementById("mostrarMod");
+      const botaoMostrarMod = document.getElementById("botaoMostrarMod");
+      // Alterna o texto do botão
+      if (botaoMostrarMod.textContent == "Ver Bônus da raça") {
+        botaoMostrarMod.textContent = "Esconder Bônus da raça";
+      } else {
+        botaoMostrarMod.textContent = "Ver Bônus da raça";
+      }
+       if (mostrarMod.textContent.trim() !== "") {
+        // já está mostrando, então limpa
+        mostrarMod.textContent = "";
+        //return;
+      }
+      if (mod) {
+         // Exibe os bônus da raça
+        mostrarMod.innerHTML = `
+          <strong>Bônus da Classe:</strong><br>
+          Força: ${mod.forca || 0}<br>
+          Destreza: ${mod.destreza || 0}<br>
+          Constituição: ${mod.constituicao || 0}<br>
+          Inteligência: ${mod.inteligencia || 0}<br>
+          Sabedoria: ${mod.sabedoria || 0}<br>
+          Carisma: ${mod.carisma || 0}
+        `;
+      } else {
+        mostrarMod.innerHTML = "Nenhum bônus definido para esta classe.";
+      }
+        
+    }
+  </script>
+</body>
+
+</html>

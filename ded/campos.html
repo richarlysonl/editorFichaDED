@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Verificar Campos do PDF</title>
+</head>
+<body>
+  <h2>Verificar Campos do PDF</h2>
+  <p>Abra o console (F12) para ver os nomes dos campos.</p>
+
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script>
+    async function verificarCamposPDF() {
+      // URL do PDF editável (pode substituir por um caminho local se estiver usando um servidor)
+      const url = "5E_CharacterSheet_Fillable.pdf"; // coloque o nome do seu arquivo aqui
+
+      try {
+        const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+        const form = pdfDoc.getForm();
+
+        const fields = form.getFields();
+        console.log("Campos encontrados no PDF:");
+
+        fields.forEach(field => {
+          const name = field.getName();
+          console.log("- " + name);
+        });
+      } catch (e) {
+        console.error("Erro ao carregar ou ler o PDF:", e);
+      }
+    }
+
+    // Executa automaticamente ao carregar a página
+    verificarCamposPDF();
+  </script>
+</body>
+</html>

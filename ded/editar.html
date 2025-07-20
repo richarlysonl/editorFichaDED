@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Ficha</title>
+</head>
+<body>
+    <h1>Editar Ficha D&D</h1>
+    <form id="fichaForm">
+        <label for="nome">Nome do Personagem:</label>
+        <input type="text" id="CharacterName" name="nome" required>
+        
+        <label for="nivel">classe e Nível:</label>
+        <input type="text" id="ClassLevel" name="nivel" required>
+        
+        <label for="forca">Força:</label>
+        <input type="number" id="STR" name="forca" required>
+        
+        <label for="destreza">Destreza:</label>
+        <input type="number" id="DEX" name="destreza" required>
+        
+        <label for="constituicao">Constituição:</label>
+        <input type="number" id="CON" name="constituicao" required>
+        
+        <label for="inteligencia">Inteligência:</label>
+        <input type="number" id="INT" name="inteligencia" required>
+        
+        <label for="sabedoria">Sabedoria:</label>
+        <input type="number" id="sabedoria" name="sabedoria" required>
+        
+        <label for="carisma">Carisma:</label>
+        <input type="number" id="carisma" name="carisma" required>
+
+        <button type="submit">Salvar</button>
+        <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+        <script>
+        lerFichaDnD();
+  async function lerFichaDnD() {
+    try {
+      const url = "ficha_preenchida.pdf"; // Caminho correto e nome simples
+      const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+      const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+      const form = pdfDoc.getForm();
+
+      const campos = [
+        "CharacterName", "ClassLevel", "STR", "DEX",
+        "CON", "INT", "WIS", "CHA"
+      ];
+
+      campos.forEach(campo => {
+        const valor = form.getTextField(campo).getText();
+        const input = document.getElementById(campo);
+        if (input) input.value = valor;
+      });
+
+    } catch (e) {
+      alert("Erro ao carregar ou ler o PDF.");
+      console.error(e);
+    }
+  }
+
+  // Você pode chamar isso no onload da nova página:
+  window.onload = () => {
+    lerFichaDnD();
+  };
+</script>
+
+</body>
+</html>
