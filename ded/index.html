@@ -103,9 +103,13 @@
     <strong>Carisma:</strong>
     <div id="carisma" class="campo-atributo" ondrop="drop(event, 'carisma')" ondragover="allowDrop(event)"></div>
   </div>
-
+  <button type="button" onclick="limparCampos()">Limpar Campos</button>
   <button type="button" onclick="preencherFichaDnD()">salvar ficha</button>
-
+  <div>
+    <h2>Carregar Ficha D&D</h2>
+    <p>Carregue uma ficha D&D preenchida para editar.</p>
+    <button onclick="lerFichaDnD()">Carregar Ficha</button>
+  </div>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   <script>
     // Variável global para armazenar os resultados das rolagens
