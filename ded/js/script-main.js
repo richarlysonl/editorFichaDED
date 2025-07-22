@@ -1,7 +1,24 @@
 // Variável global para armazenar os resultados das rolagens
 let atributos = {};
 let valoresDisponiveis = [];
-
+let skills = {
+    forca: 0,
+    destreza: 0,
+    constituicao: 0,
+    inteligencia: 0,
+    sabedoria: 0,
+    carisma: 0
+};
+let modificadores = {
+    forca: 0,
+    destreza: 0,
+    constituicao: 0,
+    inteligencia: 0,
+    sabedoria: 0,
+    carisma: 0
+};
+let proficiencia = 2; // Valor padrão de proficiência, pode ser alterado conforme necessário
+/*parte de rolagem de dados e definição dos atributos*/
 function rolarDados(valor_max, valor_min, num_dados, num_descartes, qntd) {
     valoresDisponiveis = []; // Limpa os valores anteriores
     for (let i = 0; i < qntd; i++) {
@@ -22,6 +39,7 @@ function rolarDados(valor_max, valor_min, num_dados, num_descartes, qntd) {
     renderRolagens(); // Atualiza a interface com os novos valores
 }
 
+// Função para renderizar os valores disponíveis na área de rolagens
 function renderRolagens() {
     const container = document.getElementById("rolagens");
     container.innerHTML = "";
@@ -52,7 +70,8 @@ function renderRolagens() {
     });
 }
 
-
+// Função para limpar os campos de atributos
+// Limpa os valores dos campos de atributos e remove o botão de finalizar
 function limparCampos() {
     const campos = ["forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"];
     campos.forEach(id => {
@@ -63,7 +82,8 @@ function limparCampos() {
 function allowDrop(event) {
     event.preventDefault();
 }
-
+// Função para lidar com o drop dos valores nos campos de atributos
+// Verifica se o valor é um número e se o campo de destino é válido
 function drop(event, atributo) {
     event.preventDefault();
     const valor = parseInt(event.dataTransfer.getData("text"));
@@ -93,21 +113,199 @@ function drop(event, atributo) {
     }
 
     renderRolagens(); // Atualiza a interface
+    verificarAtributosPreenchidos(); // ✅ adiciona verificação ao final
+}
+// Função para verificar se todos os atributos estão preenchidos
+// Se todos os campos de atributos estiverem preenchidos, cria um botão para finalizar
+function verificarAtributosPreenchidos() {
+    const campos = ["forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"];
+    const todosPreenchidos = campos.every(id => {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        const valor = el.textContent || el.value;
+        return valor && !isNaN(valor);
+    });
+
+    // Se todos preenchidos, cria o botão se ainda não existir
+    if (todosPreenchidos && !document.getElementById("botaoFinalizar")) {
+        const btn = document.createElement("button");
+        btn.id = "botaoFinalizar";
+        btn.textContent = "Finalizar Atributos e adicionar Bônus da classe e raça";
+        btn.onclick = aplicarValoresFinal; // chama sua função que transforma + trava
+        document.getElementById("atributos").appendChild(btn);
+    }
 }
 
-async function preencherFichaDnD() {
+/*travar e transformar os inputs*/
+// Função para travar os atributos, tornando-os apenas leitura
+// Isso impede que os usuários editem os valores, mas ainda os vejam
+function travarAtributos() {
+    const campos = ["forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"];
+    campos.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.readOnly = true; // impede edição, mas ainda é visível
+            // ou: input.disabled = true; // se quiser bloquear totalmente
+        }
+    });
+}
+// Função para transformar os atributos em inputs com os valores finais
+// Transforma os valores dos atributos em inputs, somando os bônus da classe e raça
+function transformarAtributosEmInputs() {
+    const atributosLista = ["forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"];
+    const raca = document.getElementById('raca').value || {};
+    const classe = document.getElementById('classe').value || {};
+    if (raca === "" || classe === "") {
+        alert("Por favor, preencha a classe e a raça antes de finalizar os atributos.");
+        return;
+    }
+    atributosLista.forEach(id => {
+        const valor = atributos[id]; // valor armazenado
+        const container = document.getElementById(id);
+        const bonus = definirClasse(classe);
+        const mod = definirRaca(raca);
+        console.log("bonus: " + bonus[id] + " mod: " + mod[id])
+        // Evita recriar se já for um input
+        if (container && container.tagName !== "INPUT") {
+            const input = document.createElement("input");
+            input.type = "number";
+            input.value = parseInt(valor + (bonus[id] || 0) + (mod[id] || 0)) || 0; // soma os bônus
+            input.id = id;
+            input.className = "atributo-input";
+            container.replaceWith(input); // substitui o <div> pelo <input>
+        }
+    });
+    document.getElementById("botaoFinalizar").remove();
+}
+// Função para aplicar os valores finais e travar os atributos
+// Chama as funções para transformar os atributos em inputs e travar os inputs
+function aplicarValoresFinal() {
+    transformarAtributosEmInputs(); // transforma os valores em inputs
+    travarAtributos(); // trava os inputs para não serem editados
+}
+// Função para atualizar os bônus dos atributos com base na classe e raça selecionadas
+function atualizarBonus() {
+    const classeSelecionada = document.getElementById("classe").value;
+    const racaSelecionada = document.getElementById("raca").value;
+    const bonusClasse = definirClasse(classeSelecionada) || {};
+    const bonusRaca = definirRaca(racaSelecionada) || {};
+
+    // Lista de atributos
+    const atributo = ["forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"];
+
+    atributo.forEach(attr => {
+        const input = document.getElementById(attr);
+        // pega o valor atual do input
+        if (input && input.tagName === "INPUT") {
+            const valorClasse = bonusClasse[attr] || 0;
+            const valorRaca = bonusRaca[attr] || 0;
+            console.log("valor do atributo " + attr + ": " + atributos[attr]);
+            input.value = atributos[attr] + valorClasse + valorRaca;
+            console.log("Atualizando " + attr + ": " + input.value);
+        }
+    });
+}
+
+/*skills*/
+// Função para adicionar campos de skills dinamicamente
+function adicionarSkills(event) {
+    event.preventDefault();
+    const numSkills = document.getElementById("numSkills").value;
+    if (numSkills < 0 || numSkills > 18) {
+        alert("Número de skills inválido. Deve ser entre 0 e 18.");
+        return;
+    }
+    const skillsContainer = document.getElementById("skillsContainer");
+    skillsContainer.innerHTML = ""; // Limpa o container antes de adicionar novas skills
+    for (let i = 0; i < numSkills; i++) {
+        const skillOption = document.createElement("select");
+        skillOption.id = `skill[${i}]`;
+        skillOption.options.add(new Option("Acrobacia", "acrobacia"));// Adiciona opções de skills
+        skillOption.options.add(new Option("Arcanismo", "arcanismo"));
+        skillOption.options.add(new Option("Atletismo", "atletismo"));
+        skillOption.options.add(new Option("Enganação", "enganacao"));
+        skillOption.options.add(new Option("Furtividade", "furtividade"));
+        skillOption.options.add(new Option("História", "historia"));
+        skillOption.options.add(new Option("Intimidação", "intimidacao"));
+        skillOption.options.add(new Option("Intuição", "intuicao"));
+        skillOption.options.add(new Option("Investigação", "investigacao"));
+        skillOption.options.add(new Option("Liderança", "lideranca"));
+        skillOption.options.add(new Option("Medicina", "medicina"));
+        skillOption.options.add(new Option("Natureza", "natureza"));
+        skillOption.options.add(new Option("Percepção", "percepcao"));
+        skillOption.options.add(new Option("Persuasão", "persuasao"));
+        skillOption.options.add(new Option("Religião", "religiao"));
+        skillOption.options.add(new Option("Sobrevivência", "sobrevivencia"));
+        skillOption.placeholder = `Skill ${i + 1}`;
+        skillOption.onchange = skills(); // Chama a função skills ao mudar a skill selecionada
+        skillOption.className = "skill-input";
+        skillsContainer.appendChild(skillOption);
+    }
+}
+function Skills() {
+    const skillsContainer = document.getElementById("skillsContainer");
+    const skillOptions = skillsContainer.querySelectorAll("select");
+    const attr = {
+        acrobacia: "destreza",
+        arcanismo: "inteligencia",
+        atletismo: "forca",
+        enganacao: "carisma",
+        furtividade: "destreza",
+        historia: "inteligencia",
+        intimacao: "carisma",
+        intuicao: "sabedoria",
+        investigacao: "inteligencia",
+        lideranca: "carisma",
+        medicina: "sabedoria",
+        natureza: "inteligencia",
+        percepcao: "sabedoria",
+        persuasao: "carisma",
+        religiao: "inteligencia",
+        sobrevivencia: "sabedoria"
+    }
+
+    skillOptions.forEach(skill => {
+        if (skill.value) {
+            const skillName = skill.value;
+            const atributo = attr[skillName];
+            if (atributo) {
+                skills[atributo] += parseInt(proficiencia) || 0; // Adiciona o valor da proficiência ao atributo correspondente
+
+            } else {
+                console.warn(`Atributo não encontrado para a skill: ${skillName}`);
+            }
+        }
+    });
+}
+
+function Proficiencia() {
+    const nivel = document.getElementById("nivel").value;
+    if (nivel > 0 && nivel <= 4) {
+        proficiencia = 2;
+    }
+    else if (nivel > 4 && nivel <= 8) {
+        proficiencia = 3;
+    } else if (nivel > 8 && nivel <= 12) {
+        proficiencia = 4;
+    } else if (nivel > 12 && nivel <= 16) {
+        proficiencia = 5;
+    } else if (nivel > 16 && nivel <= 20) {
+        proficiencia = 6;
+    } else {
+        alert("Nível inválido. Deve ser entre 1 e 20.");
+        return;
+    }
+}
+// Função para ler uma ficha D&D preenchida e preencher os campos
+// Carrega um PDF, lê os campos e preenche os inputs correspondentes
+async function PreencherFichaDnD() {
     const nome = document.getElementById('nome').value;
     const nivel = document.getElementById('nivel').value;
     const raca = document.getElementById('raca').value;
     const classe = document.getElementById('classe').value;
-    const forca = document.getElementById('forca').value;
-    const destreza = document.getElementById('destreza').value;
-    const constituicao = document.getElementById('constituicao').value;
-    const inteligencia = document.getElementById('inteligencia').value;
-    const sabedoria = document.getElementById('sabedoria').value;
-    const carisma = document.getElementById('carisma').value;
     const bonus = definirClasse(classe);
     const mod = definirRaca(raca);
+    const camposAtributos = { STR: "forca", DEX: "destreza", CON: "constituicao", INT: "inteligencia", WIS: "sabedoria", CHA: "carisma" };
     const url = "5E_CharacterSheet_Fillable.pdf";
     try {
         const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
@@ -119,21 +317,20 @@ async function preencherFichaDnD() {
         form.getTextField("Race ").setText(raca);
         form.getTextField("Alignment").setText("Caótico Bom");
         form.getTextField("Background").setText("baitola");
-        if (atributos !== undefined) {
-            form.getTextField("STR").setText(String(forca || 0));
-            form.getTextField("DEX").setText(String(destreza || 0));
-            form.getTextField("CON").setText(String(constituicao || 0));
-            form.getTextField("INT").setText(String(inteligencia || 0));
-            form.getTextField("WIS").setText(String(sabedoria || 0));
-            form.getTextField("CHA").setText(String(carisma || 0));
-        } else {
-            form.getTextField("STR").setText(String((atributos.forca + (bonus.forca || 0) + (mod.forca || 0))));
-            form.getTextField("DEX").setText(String((atributos.destreza + (bonus.destreza || 0) + (mod.destreza || 0))));
-            form.getTextField("CON").setText(String((atributos.constituicao + (bonus.constituicao || 0) + (mod.constituicao || 0))));
-            form.getTextField("INT").setText(String(atributos.inteligencia + (bonus.inteligencia || 0) + (mod.inteligencia || 0)));
-            form.getTextField("WIS").setText(String(atributos.sabedoria + (bonus.sabedoria || 0) + (mod.sabedoria || 0)));
-            form.getTextField("CHA").setText(String(atributos.carisma + (bonus.carisma || 0) + (mod.carisma || 0)));
-        } 
+            Object.entries(camposAtributos).forEach(([campoPdf, idAtributo]) => {
+                const valor = document.getElementById(idAtributo).value || 0;
+                form.getTextField(campoPdf).setText(String(valor));
+                console.log("Atributo " + campoPdf + ": " + valor);
+                let modificador = Math.floor((valor - 10) / 2);
+                if (campoPdf === "DEX")
+                form.getTextField(campoPdf+"mod ").setText(String(modificador)> 0 ? "+" + modificador : modificador);
+                else if (campoPdf === "CHA")
+                form.getTextField("CHamod").setText(String((modificador)> 0 ? "+" + modificador : modificador));
+                else
+                form.getTextField(campoPdf+"mod").setText(String(modificador)> 0 ? "+" + modificador : modificador);
+            });
+        Proficiencia(); // Atualiza o valor de proficiência
+        form.getTextField("ProfBonus").setText(String(proficiencia || 0));
         const pdfBytes = await pdfDoc.save();
 
         const blob = new Blob([pdfBytes], { type: "application/pdf" });
